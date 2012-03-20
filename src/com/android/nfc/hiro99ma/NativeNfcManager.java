@@ -130,7 +130,7 @@ public class NativeNfcManager implements DeviceHost {
 					//検出中
 					byte[] res = new byte[NfcPcd.GGS_LEN];
 					boolean b = NfcPcd.getGeneralStatus(res);
-					if((b && (res[NfcPcd.GGS_FIELD] == 0) || !b) {
+					if(b && (res[NfcPcd.GGS_FIELD] == 0) || !b) {
 						//どっかいった
 						mPresence = false;
 						NfcPcd.rfOff();
@@ -153,6 +153,8 @@ public class NativeNfcManager implements DeviceHost {
 						}
 						nfcid = null;
 						mListener.onRemoteEndpointDiscovered(mTag);
+					} else {
+						NfcPcd.rfOff();
 					}
 				}
 				mHandler.sendEmptyMessageDelayed(MSG_POLL, INTERVAL);

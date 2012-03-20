@@ -138,8 +138,8 @@ public class NfcPcd {
     }
     private static NfcId mNfcId = NfcId.allocate();
 
-	private static final short RW_COMMAND_LEN = 265;
-	private static final short RW_RESPONSE_LEN = 265;
+	private static final short RW_COMMAND_LEN = 265 + 10;
+	private static final short RW_RESPONSE_LEN = 265 + 10;
 
 	private static byte MAINCMD = (byte)0xd4;
 	private static byte[] ACK = { 0x00, 0x00, (byte)0xff, 0x00, (byte)0xff, 0x00 };
@@ -343,10 +343,10 @@ public class NfcPcd {
         mEndpointIn = epIn;
     }
 
-//    public static boolean sendCmd(final byte[] cmd, int len, byte[] res, int[] rlen) {
-//		rlen[0] = 0;
-//		return false;
-//	}
+	public static boolean sendCmd(final byte[] cmd, int len, byte[] res, int[] rlen) {
+		rlen[0] = 0;
+		return false;
+	}
 
 	/// @addtogroup gp_utils	Utilities
 	/// @ingroup gp_NfcPcd
@@ -521,16 +521,34 @@ public class NfcPcd {
 
 		//パケット送信
 		byte dcs = 0;
-		s_SendBuf[3] = (byte)CommandLen;
-		s_SendBuf[4] = (byte)(0 - s_SendBuf[3]);
-		send_len = 5;
-		if(pCommand != null) {
-			dcs = _calc_dcs(pCommand, CommandLen);
-			for(int i=0; i<CommandLen; i++) {
-				s_SendBuf[send_len + i] = pCommand[i];
+		if(CommandLen < 256) {
+			//Normal Frame
+			s_SendBuf[3] = (byte)CommandLen;
+			s_SendBuf[4] = (byte)(0 - s_SendBuf[3]);
+			send_len = 5;
+			if(pCommand != null) {
+				dcs = _calc_dcs(pCommand, CommandLen);
+				MemCpy(s_SendBuf, pCommand, CommandLen, send_len, 0);
+			} else {
+				dcs = _calc_dcs(s_SendBuf, CommandLen, POS_CMD);
 			}
 		} else {
-			dcs = _calc_dcs(s_SendBuf, CommandLen, POS_CMD);
+			//Extended Frame
+			if(pCommand != null) {
+				dcs = _calc_dcs(pCommand, CommandLen);
+				for(int i=0; i<CommandLen; i++) {
+					s_SendBuf[send_len + i] = pCommand[i];
+				}
+				s_SendBuf[3] = (byte)0xff;
+				s_SendBuf[4] = (byte)0xff;
+				s_SendBuf[5] = (byte)(CommandLen >> 8);
+				s_SendBuf[6] = (byte)(CommandLen & 0xff);
+				s_SendBuf[7] = (byte)(0 - s_SendBuf[5] - s_SendBuf[6]);
+				MemCpy(s_SendBuf, pCommand, CommandLen, 8, 0);
+			} else {
+				Log.e(TAG, "no space.");
+				return false;
+			}
 		}
 
 		send_len += CommandLen;
@@ -538,11 +556,11 @@ public class NfcPcd {
 		s_SendBuf[send_len++] = 0x00;
 
 		//困ったらここ！
-//		Log.d(TAG, "------------");
-//		for(int i=0; i<send_len; i++) {
-//			Log.d(TAG, "[W] " + String.format("%02x", s_SendBuf[i] & 0xff));
-//		}
-//		Log.d(TAG, "------------");
+		Log.d(TAG, "------------");
+		for(int i=0; i<send_len; i++) {
+			Log.d(TAG, "[W] " + String.format("%02x", s_SendBuf[i] & 0xff));
+		}
+		Log.d(TAG, "------------");
 
 		if(_port_write(s_SendBuf, send_len) != send_len) {
 			Log.e(TAG, "write error.");
@@ -578,11 +596,11 @@ public class NfcPcd {
 		short ret_len = _port_read(s_RecvBuf, s_RecvBuf.length);
 
 		//困ったらここ！
-//		Log.d(TAG, "------------");
-//		for(int i=0; i<ret_len; i++) {
-//			Log.d(TAG, "[R] " + String.format("%02x", s_RecvBuf[i] & 0xff));
-//		}
-//		Log.d(TAG, "------------");
+		Log.d(TAG, "------------");
+		for(int i=0; i<ret_len; i++) {
+			Log.d(TAG, "[R] " + String.format("%02x", s_RecvBuf[i] & 0xff));
+		}
+		Log.d(TAG, "------------");
 
 		if(ret_len < 0) {
 			Log.e(TAG, "recvResp 1: ret=" + ret_len);
@@ -596,11 +614,11 @@ public class NfcPcd {
 		}
 		if((s_RecvBuf[3] == 0xff) && (s_RecvBuf[4] == 0xff)) {
 			// extend frame
-//			if((ret_len != 3) || (((s_RecvBuf[0] + s_RecvBuf[1] + s_RecvBuf[2]) & 0xff) != 0)) {
-//				Log.e(TAG, "recvResp 3: ret " + ret_len);
-//				return false;
-//			}
-//			pResponseLen[0] = (short)(((short)res_buf[0] << 8) | res_buf[1]);
+			if((ret_len != 3) || (((s_RecvBuf[0] + s_RecvBuf[1] + s_RecvBuf[2]) & 0xff) != 0)) {
+				Log.e(TAG, "recvResp 3: ret " + ret_len);
+				return false;
+			}
+			pResponseLen[0] = (short)(((short)s_RecvBuf[5] << 8) | s_RecvBuf[6]);
 		} else {
 			// normal frame
 			if((s_RecvBuf[3] + s_RecvBuf[4]) != 0) {
@@ -706,6 +724,10 @@ public class NfcPcd {
 //			dst[doffset+i] = src[soffset+i];
 //		}
 		System.arraycopy(src, soffset, dst, doffset, len);
+	}
+
+	public static void MemCpy(byte[] dst, final byte[] src, byte len, int doffset, int soffset) {
+		System.arraycopy(src, soffset, dst, doffset, len & 0xff);
 	}
 
 	////////////////////////////////////////////////////
@@ -907,14 +929,15 @@ public class NfcPcd {
 	public static boolean communicateThruEx(
 				final byte[] pCommand, byte CommandLen,
 				byte[] pResponse, byte[] pResponseLen) {
-		//LOGD("%s : [%d]", __PRETTY_FUNCTION__, CommandLen);
+		Log.d(TAG, "comm thru 1");
 
-		s_SendBuf[POS_CMD + 0] = MAINCMD;
-		s_SendBuf[POS_CMD + 1] = (byte)0xa0;		//CommunicateThruEX
-		MemCpy(s_SendBuf, pCommand, CommandLen, POS_CMD + 2, 0);
+		byte[] SendBuf = new byte[RW_COMMAND_LEN];
+		SendBuf[0] = MAINCMD;
+		SendBuf[1] = (byte)0xa0;		//CommunicateThruEX
+		MemCpy(SendBuf, pCommand, CommandLen, 2, 0);
 
 		short[] res_len = new short[1];
-		boolean ret = sendCmd(null, 2 + CommandLen, s_ResponseBuf, res_len);
+		boolean ret = sendCmd(SendBuf, 2 + CommandLen, s_ResponseBuf, res_len);
 		if(!ret || (res_len[0] < 3)) {
 			Log.e(TAG, "communicateThruEx ret " + ret);
 			return false;
@@ -955,18 +978,21 @@ public class NfcPcd {
 				final byte[] pCommand, byte CommandLen,
 				byte[] pResponse, byte[] pResponseLen) {
 		//LOGD("%s : (%d)", __PRETTY_FUNCTION__, CommandLen);
+		Log.d(TAG, "comm thru 2");
 
-		s_SendBuf[POS_CMD + 0] = MAINCMD;
-		s_SendBuf[POS_CMD + 1] = (byte)0xa0;		//CommunicateThruEX
-		s_SendBuf[POS_CMD + 2] = l16(Timeout);
-		s_SendBuf[POS_CMD + 3] = h16(Timeout);
-		MemCpy(s_SendBuf, pCommand, CommandLen, POS_CMD + 4, 0);
-		CommandLen += 4;
+		byte[] SendBuf = new byte[RW_COMMAND_LEN];
+		SendBuf[POS_CMD + 0] = MAINCMD;
+		SendBuf[POS_CMD + 1] = (byte)0xa0;		//CommunicateThruEX
+		SendBuf[POS_CMD + 2] = l16(Timeout);
+		SendBuf[POS_CMD + 3] = h16(Timeout);
+		int cmd_len = CommandLen & 0xff;
+		MemCpy(SendBuf, pCommand, cmd_len, 4, 0);
+		cmd_len += 4;
 
 		short[] res_len = new short[1];
-		boolean ret = sendCmd(null, CommandLen, s_ResponseBuf, res_len);
+		boolean ret = sendCmd(SendBuf, cmd_len, s_ResponseBuf, res_len);
 		if(!ret || (res_len[0] < 3)) {
-			Log.e(TAG, "communicateThruEx ret " + ret);
+			Log.e(TAG, "communicateThruEx2 ret " + ret);
 			return false;
 		}
 		if(res_len[0] == 3) {
@@ -1034,7 +1060,7 @@ public class NfcPcd {
 	 * @retval		false			失敗
 	 */
 	public static boolean inCommunicateThru(
-				final byte[] pCommand, byte CommandLen,
+				final byte[] pCommand, int CommandLen,
 				byte[] pResponse, byte[] pResponseLen) {
 		s_SendBuf[POS_CMD + 0] = MAINCMD;
 		s_SendBuf[POS_CMD + 1] = 0x42;			//InCommunicateThru
