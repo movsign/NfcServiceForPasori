@@ -21,7 +21,7 @@ public class NfcPcd {
 		UNKNOWN,
 	}
 
-    private static final String TAG = "NfcPcd";
+	private static final String TAG = "NfcPcd";
 	private static final String ACTION_USB_PERMISSION = "com.blogpost.hiro99ma.pcd.USB_PERMISSION";
 
 	public static final int SIZE_CMDBUF = 254;
@@ -62,46 +62,46 @@ public class NfcPcd {
 
 
 	// USB
-    private static final int PASORI_VID = 0x054c;
-    private static final int PASORI_PID = 0x02e1;
+	private static final int PASORI_VID = 0x054c;
+	private static final int PASORI_PID = 0x02e1;
 
 
 
-    private static UsbManager mManager;
-    private static UsbDevice mDevice;
-    private static UsbDeviceConnection mDeviceConnection;
-    private static UsbInterface mInterface;
-    private static UsbEndpoint mEndpointOut;
-    private static UsbEndpoint mEndpointIn;
+	private static UsbManager mManager;
+	private static UsbDevice mDevice;
+	private static UsbDeviceConnection mDeviceConnection;
+	private static UsbInterface mInterface;
+	private static UsbEndpoint mEndpointOut;
+	private static UsbEndpoint mEndpointIn;
 
-    //private static ByteBuffer mNfcId3i = ByteBuffer.allocate(SIZE_NFCID3);	///< NFCID3 for Initiator
-    //private static ByteBuffer mNfcId3t = ByteBuffer.allocate(SIZE_NFCID3);	///< NFCID3 for Target
-    private static byte[] mNfcId3i = new byte[SIZE_NFCID3];	///< NFCID3 for Initiator
-    private static byte[] mNfcId3t = new byte[SIZE_NFCID3];	///< NFCID3 for Target
+	//private static ByteBuffer mNfcId3i = ByteBuffer.allocate(SIZE_NFCID3);	///< NFCID3 for Initiator
+	//private static ByteBuffer mNfcId3t = ByteBuffer.allocate(SIZE_NFCID3);	///< NFCID3 for Target
+	private static byte[] mNfcId3i = new byte[SIZE_NFCID3];	///< NFCID3 for Initiator
+	private static byte[] mNfcId3t = new byte[SIZE_NFCID3];	///< NFCID3 for Target
 
-    public enum NfcIdType {
-    	NONE,
-    	NFCID0,
-    	NFCID1,
-    	NFCID2,
-    	NFCID3
-    };
-    public static class NfcId implements Cloneable {
-	    // NFC-A
-	    public static final int POS_SELRES = 0;
-	    public static final int POS_SENSRES0 = 1;
-	    public static final int POS_SENSRES1 = 2;
+	public enum NfcIdType {
+		NONE,
+		NFCID0,
+		NFCID1,
+		NFCID2,
+		NFCID3
+	};
+	public static class NfcId implements Cloneable {
+		// NFC-A
+		public static final int POS_SELRES = 0;
+		public static final int POS_SENSRES0 = 1;
+		public static final int POS_SENSRES1 = 2;
 
-	    // NFC-F
-	    public static final int POS_PMM = 0;
-	    public static final int POS_SC0 = 8;
-	    public static final int POS_SC1 = 9;
+		// NFC-F
+		public static final int POS_PMM = 0;
+		public static final int POS_SC0 = 8;
+		public static final int POS_SC1 = 9;
 
-    	public byte[]		Id = new byte[SIZE_NFCIDMAX];
-    	public NfcIdType	Type;
+		public byte[]		Id = new byte[SIZE_NFCIDMAX];
+		public NfcIdType	Type;
 		public byte			Length;
 		public String		Label;
-    	public byte[]		Manufacture;
+		public byte[]		Manufacture;
 		public byte			SelRes;
 
 		public static NfcId allocate() { return new NfcId(); }
@@ -135,8 +135,8 @@ public class NfcPcd {
 			this.Manufacture = (byte[])nfcid.Manufacture.clone();
 			this.SelRes = nfcid.SelRes;
 		}
-    }
-    private static NfcId mNfcId = NfcId.allocate();
+	}
+	private static NfcId mNfcId = NfcId.allocate();
 
 	private static final short RW_COMMAND_LEN = 265;
 	private static final short RW_RESPONSE_LEN = 265;
@@ -151,10 +151,10 @@ public class NfcPcd {
 	private static byte[] s_SendBuf = new byte[RW_COMMAND_BUFLEN];
 	private static byte[] s_RecvBuf = new byte[RW_RESPONSE_BUFLEN];
 
-	/// ���M�o�b�t�@
+	/// 送信バッファのデータ部位置
 	private static final int POS_CMD = 5;
 
-	/// ��M�o�b�t�@
+	/// 受信バッファ？
 	private static byte[] s_ResponseBuf = new byte[RW_RESPONSE_BUFLEN];
 
 	///
@@ -168,183 +168,183 @@ public class NfcPcd {
 		return mNfcId;
 	}
 
-    public static IntentFilter init(Context context, UsbManager mgr) {
+	public static IntentFilter init(Context context, UsbManager mgr) {
 //    	if(mOpened) {
 //    		return null;
 //    	}
 
-    	boolean ret = false;
-        mManager = mgr;
+		boolean ret = false;
+		mManager = mgr;
 
 		s_SendBuf[0] = 0x00;
 		s_SendBuf[1] = 0x00;
 		s_SendBuf[2] = (byte)0xff;
 
-        IntentFilter filter = null;
+		IntentFilter filter = null;
 
-        // check for existing devices
-        for (UsbDevice device :  mManager.getDeviceList().values()) {
-            UsbInterface intf = findInterface(device);
-            if (setInterface(device, intf)) {
-            	//デバイスを挿して許可した場合か、既に許可されている場合だと思う。
-            	Log.d(TAG, "OK device");
-            	ret = true;
-            	break;
-            } else if(device != null) {
-            	//デバイスは見つかったが、ユーザに許可を得なくてはならない
+		// check for existing devices
+		for (UsbDevice device :  mManager.getDeviceList().values()) {
+			UsbInterface intf = findInterface(device);
+			if (setInterface(device, intf)) {
+				//デバイスを挿して許可した場合か、既に許可されている場合だと思う。
+				Log.d(TAG, "OK device");
+				ret = true;
+				break;
+			} else if(device != null) {
+				//デバイスは見つかったが、ユーザに許可を得なくてはならない
 //            	Log.d(TAG, "pending intent : ACTION_USB_PERMISSION");
 //            	final PendingIntent intent = PendingIntent.getBroadcast(context, 0, new Intent(ACTION_USB_PERMISSION), 0);
 //            	filter = new IntentFilter(ACTION_USB_PERMISSION);
 //            	mManager.requestPermission(device, intent);
-            	break;
-            }
-        }
+				break;
+			}
+		}
 
-        if(!ret) {
-        	Log.e(TAG, "fail init");
-            return filter;
-        }
-        mOpened = true;
+		if(!ret) {
+			Log.e(TAG, "fail init");
+			return filter;
+		}
+		mOpened = true;
 
-        // listen for new devices
-        filter = new IntentFilter();
-        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
-        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+		// listen for new devices
+		filter = new IntentFilter();
+		filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+		filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
 
-        return filter;
-    }
+		return filter;
+	}
 
-    public static void destroy() {
-    	if(mDeviceConnection != null) {
-    		rfOff();
-    		reset();
-    	}
-    	setInterface(null, null);
-    }
+	public static void destroy() {
+		if(mDeviceConnection != null) {
+			rfOff();
+			reset();
+		}
+		setInterface(null, null);
+	}
 
-    public static RecvBroadcast receiveBroadcast(Context context, Intent intent) {
-    	RecvBroadcast ret = RecvBroadcast.UNKNOWN;
-        String action = intent.getAction();
-        if (ACTION_USB_PERMISSION.equals(action)) {
-            UsbDevice device = (UsbDevice)intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-            if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
-                if(device != null){
-                  //call method to set up device communication
-                    UsbInterface intf = findInterface(device);
-                    if (intf != null) {
-                        Log.d(TAG, "Found RC-S370 interface " + intf);
-                        if(setInterface(device, intf)) {
-                        	ret = RecvBroadcast.PERMIT;
-                        }
-                    }
-                }
-            } else {
-                Log.d(TAG, "permission denied for device " + device);
-            }
-        } else if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
-            UsbDevice device = (UsbDevice)intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-            UsbInterface intf = findInterface(device);
-            if (intf != null) {
-                Log.d(TAG, "Attach RC-S370 interface " + intf);
-                if(setInterface(device, intf)) {
-                	ret = RecvBroadcast.ATTACHED;
-                }
-            }
-        } else if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
-            UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-            String deviceName = device.getDeviceName();
-            if (mDevice != null && mDevice.equals(deviceName)) {
-                Log.d(TAG, "Detach RC-S370 interface removed");
-                if(setInterface(null, null)) {
-                	ret = RecvBroadcast.DETACHED;
-                }
-            }
-        }
+	public static RecvBroadcast receiveBroadcast(Context context, Intent intent) {
+		RecvBroadcast ret = RecvBroadcast.UNKNOWN;
+		String action = intent.getAction();
+		if (ACTION_USB_PERMISSION.equals(action)) {
+			UsbDevice device = (UsbDevice)intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+			if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
+				if(device != null){
+				  //call method to set up device communication
+					UsbInterface intf = findInterface(device);
+					if (intf != null) {
+						Log.d(TAG, "Found RC-S370 interface " + intf);
+						if(setInterface(device, intf)) {
+							ret = RecvBroadcast.PERMIT;
+						}
+					}
+				}
+			} else {
+				Log.d(TAG, "permission denied for device " + device);
+			}
+		} else if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
+			UsbDevice device = (UsbDevice)intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+			UsbInterface intf = findInterface(device);
+			if (intf != null) {
+				Log.d(TAG, "Attach RC-S370 interface " + intf);
+				if(setInterface(device, intf)) {
+					ret = RecvBroadcast.ATTACHED;
+				}
+			}
+		} else if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
+			UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+			String deviceName = device.getDeviceName();
+			if (mDevice != null && mDevice.equals(deviceName)) {
+				Log.d(TAG, "Detach RC-S370 interface removed");
+				if(setInterface(null, null)) {
+					ret = RecvBroadcast.DETACHED;
+				}
+			}
+		}
 
-        return ret;
-    }
+		return ret;
+	}
 
-    private static UsbInterface findInterface(UsbDevice device) {
-        Log.d(TAG, "findInterface " + device);
-        int count = device.getInterfaceCount();
-        for (int i = 0; i < count; i++) {
-            UsbInterface intf = device.getInterface(i);
-            if(device.getVendorId() == PASORI_VID && device.getProductId() == PASORI_PID) {
-            	Log.d(TAG, "findInterface : find");
-                return intf;
-            }
-        }
-        Log.e(TAG, "findInterface : cannot find");
-        return null;
-    }
+	private static UsbInterface findInterface(UsbDevice device) {
+		Log.d(TAG, "findInterface " + device);
+		int count = device.getInterfaceCount();
+		for (int i = 0; i < count; i++) {
+			UsbInterface intf = device.getInterface(i);
+			if(device.getVendorId() == PASORI_VID && device.getProductId() == PASORI_PID) {
+				Log.d(TAG, "findInterface : find");
+				return intf;
+			}
+		}
+		Log.e(TAG, "findInterface : cannot find");
+		return null;
+	}
 
-    private static boolean setInterface(UsbDevice device, UsbInterface intf) {
-        if (mDeviceConnection != null) {
-        	Log.d(TAG, "setInterface : mDeviceConnection != null");
-            if (mInterface != null) {
-        		Log.d(TAG, "setInterface : releaseInterface");
-                mDeviceConnection.releaseInterface(mInterface);
-                mInterface = null;
-            }
-            mDeviceConnection.close();
-            mDevice = null;
-            mDeviceConnection = null;
-        } else {
-        	Log.e(TAG, "mDeviceConnection is null.");
-        }
+	private static boolean setInterface(UsbDevice device, UsbInterface intf) {
+		if (mDeviceConnection != null) {
+			Log.d(TAG, "setInterface : mDeviceConnection != null");
+			if (mInterface != null) {
+				Log.d(TAG, "setInterface : releaseInterface");
+				mDeviceConnection.releaseInterface(mInterface);
+				mInterface = null;
+			}
+			mDeviceConnection.close();
+			mDevice = null;
+			mDeviceConnection = null;
+		} else {
+			Log.e(TAG, "mDeviceConnection is null.");
+		}
 
-        if (device != null && intf != null) {
-        	Log.d(TAG, "setInterface : parameter OK");
-        	try {
-        		Log.d(TAG, "setInterface : openDevice");
-	            UsbDeviceConnection connection = mManager.openDevice(device);
-	            if (connection != null) {
-	                if (connection.claimInterface(intf, false)) {
-        				Log.d(TAG, "setInterface : OK");
-	                    mDevice = device;
-	                    mDeviceConnection = connection;
-	                    mInterface = intf;
-	                    findEndPoint(connection, intf);
-	                    rfConfigInit();
-	                    return true;
-	                } else {
-        				Log.d(TAG, "setInterface : close");
-	                    connection.close();
-	                }
-	            }
-        	}
-        	catch(Exception ex) {
-        		Log.e(TAG, "setInterface: " + ex.getStackTrace().toString());
-        	}
-        } else {
-        	Log.e(TAG, "parameter invalid");
-        }
+		if (device != null && intf != null) {
+			Log.d(TAG, "setInterface : parameter OK");
+			try {
+				Log.d(TAG, "setInterface : openDevice");
+				UsbDeviceConnection connection = mManager.openDevice(device);
+				if (connection != null) {
+					if (connection.claimInterface(intf, false)) {
+						Log.d(TAG, "setInterface : OK");
+						mDevice = device;
+						mDeviceConnection = connection;
+						mInterface = intf;
+						findEndPoint(connection, intf);
+						rfConfigInit();
+						return true;
+					} else {
+						Log.d(TAG, "setInterface : close");
+						connection.close();
+					}
+				}
+			}
+			catch(Exception ex) {
+				Log.e(TAG, "setInterface: " + ex.getStackTrace().toString());
+			}
+		} else {
+			Log.e(TAG, "parameter invalid");
+		}
 
-        Log.e(TAG, "setInterface : cannot find");
-        return false;
-    }
+		Log.e(TAG, "setInterface : cannot find");
+		return false;
+	}
 
 
-    private static void findEndPoint(UsbDeviceConnection connection, UsbInterface intf) {
-        UsbEndpoint epOut = null;
-        UsbEndpoint epIn = null;
-        // look for our bulk end points
-        for (int i = 0; i < intf.getEndpointCount(); i++) {
-            UsbEndpoint ep = intf.getEndpoint(i);
-            if (ep.getType() == UsbConstants.USB_ENDPOINT_XFER_BULK) {
-                if (ep.getDirection() == UsbConstants.USB_DIR_OUT) {
-                    epOut = ep;
-                } else {
-                    epIn = ep;
-                }
-            }
-        }
-        if (epOut == null || epIn == null) {
-            throw new IllegalArgumentException("not all endpoints found");
-        }
-        mEndpointOut = epOut;
-        mEndpointIn = epIn;
-    }
+	private static void findEndPoint(UsbDeviceConnection connection, UsbInterface intf) {
+		UsbEndpoint epOut = null;
+		UsbEndpoint epIn = null;
+		// look for our bulk end points
+		for (int i = 0; i < intf.getEndpointCount(); i++) {
+			UsbEndpoint ep = intf.getEndpoint(i);
+			if (ep.getType() == UsbConstants.USB_ENDPOINT_XFER_BULK) {
+				if (ep.getDirection() == UsbConstants.USB_DIR_OUT) {
+					epOut = ep;
+				} else {
+					epIn = ep;
+				}
+			}
+		}
+		if (epOut == null || epIn == null) {
+			throw new IllegalArgumentException("not all endpoints found");
+		}
+		mEndpointOut = epOut;
+		mEndpointIn = epIn;
+	}
 
 	public static boolean sendCmd(final byte[] cmd, int len, byte[] res, int[] rlen) {
 		rlen[0] = 0;
@@ -556,11 +556,11 @@ public class NfcPcd {
 		s_SendBuf[send_len++] = 0x00;
 
 		//困ったらここ！
-		Log.d(TAG, "------------");
-		for(int i=0; i<send_len; i++) {
-			Log.d(TAG, "[W] " + String.format("%02x", s_SendBuf[i] & 0xff));
-		}
-		Log.d(TAG, "------------");
+//		Log.d(TAG, "------------");
+//		for(int i=0; i<send_len; i++) {
+//			Log.d(TAG, "[W] " + String.format("%02x", s_SendBuf[i] & 0xff));
+//		}
+//		Log.d(TAG, "------------");
 
 		if(_port_write(s_SendBuf, send_len) != send_len) {
 			Log.e(TAG, "write error.");
@@ -596,11 +596,11 @@ public class NfcPcd {
 		short ret_len = _port_read(s_RecvBuf, s_RecvBuf.length);
 
 		//困ったらここ！
-		Log.d(TAG, "------------");
-		for(int i=0; i<ret_len; i++) {
-			Log.d(TAG, "[R] " + String.format("%02x", s_RecvBuf[i] & 0xff));
-		}
-		Log.d(TAG, "------------");
+//		Log.d(TAG, "------------");
+//		for(int i=0; i<ret_len; i++) {
+//			Log.d(TAG, "[R] " + String.format("%02x", s_RecvBuf[i] & 0xff));
+//		}
+//		Log.d(TAG, "------------");
 
 		if(ret_len < 0) {
 			Log.e(TAG, "recvResp 1: ret=" + ret_len);
@@ -700,12 +700,12 @@ public class NfcPcd {
 	////////////////////////////////////////////////////
 	private static short _port_write(final byte[] data, int len) {
 		int ret = mDeviceConnection.bulkTransfer(mEndpointOut, data, len, 500);
-    	return (short)ret;
+		return (short)ret;
 	}
 
 	private static short _port_read(byte[] data, int len) {
 		int ret = mDeviceConnection.bulkTransfer(mEndpointIn, data, len, 500);
-    	return (short)ret;
+		return (short)ret;
 	}
 
 
@@ -989,11 +989,11 @@ public class NfcPcd {
 		}
 
 		//困ったらここ！
-		Log.d(TAG, "------------");
-		for(int i=0; i<CommandLen; i++) {
-			Log.d(TAG, "[G] " + String.format("%02x", pCommand[i] & 0xff));
-		}
-		Log.d(TAG, "------------");
+//		Log.d(TAG, "------------");
+//		for(int i=0; i<CommandLen; i++) {
+//			Log.d(TAG, "[G] " + String.format("%02x", pCommand[i] & 0xff));
+//		}
+//		Log.d(TAG, "------------");
 
 
 		byte[] SendBuf = new byte[RW_COMMAND_LEN];
