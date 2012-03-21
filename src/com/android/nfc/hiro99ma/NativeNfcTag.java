@@ -171,8 +171,8 @@ public class NativeNfcTag implements TagEndpoint {
 			mWatchdog.pause();
 		}
 		byte[] result = new byte[NfcPcd.SIZE_RESBUF];
-		byte[] len = new byte[1];
-		boolean ret = NfcPcd.communicateThruEx((short)12000, data, (byte)data.length, result, len);
+		int[] len = new int[1];
+		boolean ret = NfcPcd.communicateThruEx((short)12000, data, data.length, result, len);
 		byte[] result_new = null;
 		if(ret) {
 			result_new = new byte[len[0]];

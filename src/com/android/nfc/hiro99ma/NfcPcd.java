@@ -138,21 +138,24 @@ public class NfcPcd {
     }
     private static NfcId mNfcId = NfcId.allocate();
 
-	private static final short RW_COMMAND_LEN = 265 + 10;
-	private static final short RW_RESPONSE_LEN = 265 + 10;
+	private static final short RW_COMMAND_LEN = 265;
+	private static final short RW_RESPONSE_LEN = 265;
+
+	private static final short RW_COMMAND_BUFLEN = RW_COMMAND_LEN + 10;
+	private static final short RW_RESPONSE_BUFLEN = RW_RESPONSE_LEN + 10;
 
 	private static byte MAINCMD = (byte)0xd4;
 	private static byte[] ACK = { 0x00, 0x00, (byte)0xff, 0x00, (byte)0xff, 0x00 };
 
 	//private static ByteBuffer s_SendBuf = ByteBuffer.allocate(RW_RESPONSE_LEN);
-	private static byte[] s_SendBuf = new byte[RW_COMMAND_LEN];
-	private static byte[] s_RecvBuf = new byte[RW_RESPONSE_LEN];
+	private static byte[] s_SendBuf = new byte[RW_COMMAND_BUFLEN];
+	private static byte[] s_RecvBuf = new byte[RW_RESPONSE_BUFLEN];
 
 	/// ���M�o�b�t�@
 	private static final int POS_CMD = 5;
 
 	/// ��M�o�b�t�@
-	private static byte[] s_ResponseBuf = new byte[RW_RESPONSE_LEN];
+	private static byte[] s_ResponseBuf = new byte[RW_RESPONSE_BUFLEN];
 
 	///
 	private static boolean mOpened = false;
@@ -535,15 +538,12 @@ public class NfcPcd {
 		} else {
 			//Extended Frame
 			if(pCommand != null) {
-				dcs = _calc_dcs(pCommand, CommandLen);
-				for(int i=0; i<CommandLen; i++) {
-					s_SendBuf[send_len + i] = pCommand[i];
-				}
 				s_SendBuf[3] = (byte)0xff;
 				s_SendBuf[4] = (byte)0xff;
 				s_SendBuf[5] = (byte)(CommandLen >> 8);
 				s_SendBuf[6] = (byte)(CommandLen & 0xff);
 				s_SendBuf[7] = (byte)(0 - s_SendBuf[5] - s_SendBuf[6]);
+				dcs = _calc_dcs(pCommand, CommandLen);
 				MemCpy(s_SendBuf, pCommand, CommandLen, 8, 0);
 			} else {
 				Log.e(TAG, "no space.");
@@ -975,22 +975,37 @@ public class NfcPcd {
 	 */
 	public static boolean communicateThruEx(
 				short Timeout,
-				final byte[] pCommand, byte CommandLen,
-				byte[] pResponse, byte[] pResponseLen) {
+				final byte[] pCommand, int CommandLen,
+				byte[] pResponse, int[] pResponseLen) {
 		//LOGD("%s : (%d)", __PRETTY_FUNCTION__, CommandLen);
 		Log.d(TAG, "comm thru 2");
 
+		//Extendedフレームのデータ部は、最大265byte。
+		//CommunicateThruEXのデータ部以外は、4byte。
+		//つまり、データ部は261byteまで許容しないといかん。
+		if(CommandLen > 261) {
+			Log.e(TAG, "bad size");
+			return false;
+		}
+
+		//困ったらここ！
+		Log.d(TAG, "------------");
+		for(int i=0; i<CommandLen; i++) {
+			Log.d(TAG, "[G] " + String.format("%02x", pCommand[i] & 0xff));
+		}
+		Log.d(TAG, "------------");
+
+
 		byte[] SendBuf = new byte[RW_COMMAND_LEN];
-		SendBuf[POS_CMD + 0] = MAINCMD;
-		SendBuf[POS_CMD + 1] = (byte)0xa0;		//CommunicateThruEX
-		SendBuf[POS_CMD + 2] = l16(Timeout);
-		SendBuf[POS_CMD + 3] = h16(Timeout);
-		int cmd_len = CommandLen & 0xff;
-		MemCpy(SendBuf, pCommand, cmd_len, 4, 0);
-		cmd_len += 4;
+		SendBuf[0] = MAINCMD;
+		SendBuf[1] = (byte)0xa0;		//CommunicateThruEX
+		SendBuf[2] = l16(Timeout);
+		SendBuf[3] = h16(Timeout);
+		MemCpy(SendBuf, pCommand, CommandLen, 4, 0);
+		CommandLen += 4;
 
 		short[] res_len = new short[1];
-		boolean ret = sendCmd(SendBuf, cmd_len, s_ResponseBuf, res_len);
+		boolean ret = sendCmd(SendBuf, CommandLen, s_ResponseBuf, res_len);
 		if(!ret || (res_len[0] < 3)) {
 			Log.e(TAG, "communicateThruEx2 ret " + ret);
 			return false;
