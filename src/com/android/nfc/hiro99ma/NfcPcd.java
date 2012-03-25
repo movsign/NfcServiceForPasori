@@ -903,6 +903,12 @@ public class NfcPcd {
 			return false;
 		}
 		MemCpy(pResponse, s_ResponseBuf, GGS_LEN, 0, 2);
+		//困ったらここ！
+		Log.d(TAG, "------------");
+		for(int i=0; i<ret_len; i++) {
+			Log.d(TAG, "[GGS] " + String.format("%02x", s_ResponseBuf[i] & 0xff));
+		}
+		Log.d(TAG, "------------");
 
 		return true;
 	}

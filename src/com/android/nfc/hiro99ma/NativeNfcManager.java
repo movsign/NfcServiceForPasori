@@ -132,6 +132,7 @@ public class NativeNfcManager implements DeviceHost {
 					boolean b = NfcPcd.getGeneralStatus(res);
 					if(b && (res[NfcPcd.GGS_FIELD] == 0) || !b) {
 						//どっかいった
+						Log.d(TAG, "card remove : stst[" + b + "] / field:" + res[NfcPcd.GGS_FIELD]);
 						mPresence = false;
 						NfcPcd.rfOff();
 						mListener.onRemoteFieldDeactivated();
