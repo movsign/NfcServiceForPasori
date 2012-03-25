@@ -153,6 +153,7 @@ public class NfcPcd {
 
 	/// 送信バッファのデータ部位置
 	private static final int POS_CMD = 5;
+	private static final int POS_CMD_EXT = 8;
 
 	/// 受信バッファ？
 	private static byte[] s_ResponseBuf = new byte[RW_RESPONSE_BUFLEN];
@@ -514,7 +515,7 @@ public class NfcPcd {
 	 * @retval		true			成功
 	 * @retval		false			失敗
 	 */
-	public static boolean sendCmd(
+	public static synchronized boolean sendCmd(
 				final byte[] pCommand, int CommandLen,
 				byte[] pResponse, short[] pResponseLen,
 				boolean bRecv)
@@ -591,7 +592,7 @@ public class NfcPcd {
 	 * @retval		true			成功
 	 * @retval		false			失敗
 	 */
-	private static boolean recvResp(byte[] pResponse, short[] pResponseLen, byte CmdCode/*=0xff*/)
+	private static synchronized boolean recvResp(byte[] pResponse, short[] pResponseLen, byte CmdCode/*=0xff*/)
 	{
 		short ret_len = _port_read(s_RecvBuf, s_RecvBuf.length);
 
@@ -612,6 +613,7 @@ public class NfcPcd {
 			Log.e(TAG, "recvResp 2");
 			return false;
 		}
+		int offset = 0;
 		if((s_RecvBuf[3] == 0xff) && (s_RecvBuf[4] == 0xff)) {
 			// extend frame
 			if((ret_len != 3) || (((s_RecvBuf[0] + s_RecvBuf[1] + s_RecvBuf[2]) & 0xff) != 0)) {
@@ -619,13 +621,20 @@ public class NfcPcd {
 				return false;
 			}
 			pResponseLen[0] = (short)(((short)s_RecvBuf[5] << 8) | s_RecvBuf[6]);
+			offset = POS_CMD_EXT;
 		} else {
 			// normal frame
-			if((s_RecvBuf[3] + s_RecvBuf[4]) != 0) {
+			if(((s_RecvBuf[3] + s_RecvBuf[4]) & 0xff) != 0) {
+				//ACKかも？
+				if(MemCmp(s_RecvBuf, ACK, ACK.length, 0, 0)) {
+					Log.d(TAG, "  ACK");
+					return true;
+				}
 				Log.e(TAG, "recvResp 4");
 				return false;
 			}
 			pResponseLen[0] = s_RecvBuf[3];
+			offset = POS_CMD;
 		}
 		if(pResponseLen[0] > RW_RESPONSE_LEN) {
 			Log.e(TAG, "recvResp 5  len " + pResponseLen[0]);
@@ -633,7 +642,7 @@ public class NfcPcd {
 		}
 
 		for(int i=0; i<pResponseLen[0]; i++) {
-			pResponse[i] = s_RecvBuf[POS_CMD+i];
+			pResponse[i] = s_RecvBuf[offset+i];
 		}
 
 		if(pResponse[0] != (byte)0xd5) {
@@ -652,7 +661,7 @@ public class NfcPcd {
 		}
 
 		byte dcs = _calc_dcs(pResponse, pResponseLen[0]);
-		if((s_RecvBuf[POS_CMD+pResponseLen[0]] != dcs) || (s_RecvBuf[POS_CMD+pResponseLen[0]+1] != 0x00)) {
+		if((s_RecvBuf[offset+pResponseLen[0]] != dcs) || (s_RecvBuf[offset+pResponseLen[0]+1] != 0x00)) {
 			Log.e(TAG, "recvResp 8");
 			sendAck();
 			return false;
@@ -698,13 +707,21 @@ public class NfcPcd {
 	}
 
 	////////////////////////////////////////////////////
-	private static short _port_write(final byte[] data, int len) {
+	private static synchronized short _port_write(final byte[] data, int len) {
 		int ret = mDeviceConnection.bulkTransfer(mEndpointOut, data, len, 500);
 		return (short)ret;
 	}
 
-	private static short _port_read(byte[] data, int len) {
-		int ret = mDeviceConnection.bulkTransfer(mEndpointIn, data, len, 500);
+	private static synchronized short _port_read(byte[] data, int len) {
+		int ret;
+		while(true) {
+			ret = mDeviceConnection.bulkTransfer(mEndpointIn, data, len, 0);
+			if(ret != -1) {
+				break;
+			} else {
+				Log.e(TAG, "USB read fail");
+			}
+		}
 		return (short)ret;
 	}
 
@@ -926,7 +943,7 @@ public class NfcPcd {
 	 * @retval		true			成功
 	 * @retval		false			失敗
 	 */
-	public static boolean communicateThruEx(
+	public static synchronized boolean communicateThruEx(
 				final byte[] pCommand, byte CommandLen,
 				byte[] pResponse, byte[] pResponseLen) {
 		Log.d(TAG, "comm thru 1");
@@ -973,7 +990,7 @@ public class NfcPcd {
 	 *
 	 * @note		-# #Timeoutは0.5ms単位なので注意
 	 */
-	public static boolean communicateThruEx(
+	public static synchronized boolean communicateThruEx(
 				short Timeout,
 				final byte[] pCommand, int CommandLen,
 				byte[] pResponse, int[] pResponseLen) {
@@ -1233,7 +1250,7 @@ public class NfcPcd {
 	 *
 	 * @attention	- 取得失敗は、主にカードが認識できない場合である。
 	 */
-	public static boolean pollingF(short systemCode, int reqCode) {
+	public static synchronized boolean pollingF(short systemCode, int reqCode) {
 		mNfcId.reset();
 
 		//InListPassiveTarget
