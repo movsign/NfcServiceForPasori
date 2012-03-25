@@ -126,13 +126,15 @@ public class NativeNfcManager implements DeviceHost {
 				return;
 			}
 			if((mPolling == true) && (msg.what == MSG_POLL)) {
+				byte[] res = new byte[NfcPcd.GGS_LEN];
+				boolean bGGS = NfcPcd.getGeneralStatus(res);
 				if(mPresence) {
 					//検出中
-					byte[] res = new byte[NfcPcd.GGS_LEN];
-					boolean b = NfcPcd.getGeneralStatus(res);
-					if(b && (res[NfcPcd.GGS_FIELD] == 0) || !b) {
+//					byte[] res = new byte[NfcPcd.GGS_LEN];
+//					boolean b = NfcPcd.getGeneralStatus(res);
+					if((bGGS && (res[NfcPcd.GGS_ERR] == 0)) || !bGGS) {
 						//どっかいった
-						Log.d(TAG, "card remove : stst[" + b + "] / field:" + res[NfcPcd.GGS_FIELD]);
+						Log.d(TAG, "card remove : stst[" + bGGS + "] / field:" + res[NfcPcd.GGS_ERR]);
 						mPresence = false;
 						NfcPcd.rfOff();
 						mListener.onRemoteFieldDeactivated();

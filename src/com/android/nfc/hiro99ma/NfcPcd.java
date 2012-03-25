@@ -905,7 +905,7 @@ public class NfcPcd {
 		MemCpy(pResponse, s_ResponseBuf, GGS_LEN, 0, 2);
 		//困ったらここ！
 		Log.d(TAG, "------------");
-		for(int i=0; i<ret_len; i++) {
+		for(int i=0; i<res_len[0]; i++) {
 			Log.d(TAG, "[GGS] " + String.format("%02x", s_ResponseBuf[i] & 0xff));
 		}
 		Log.d(TAG, "------------");
