@@ -151,7 +151,7 @@ public class NativeNfcManager implements DeviceHost {
 						NfcPcd.NfcId nfcid = (NfcPcd.NfcId)NfcPcd.getNfcId().clone();
 						b = NfcPcd.pollingF(0x12fc);	//Type3
 						if(!b) {
-							//Typ3じゃないなら、元に戻すか
+							//Type3じゃないなら、元に戻すか
 							NfcPcd.getNfcId().copy(nfcid);
 						}
 						nfcid = null;
